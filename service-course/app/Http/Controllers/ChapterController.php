@@ -7,7 +7,7 @@ use App\Models\Chapter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class ChatperController extends Controller
+class ChapterController extends Controller
 {
     public function index(Request $request){
         $chapters = Chapter::query();

@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Models\Mentor;
+use App\Models\Review;
+use App\Models\Chapter;
+use App\Models\MyCourse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -11,6 +14,8 @@ class CourseController extends Controller
 {
 
     public function index(Request $request){
+       
+      
         // membuat list
         $courses = Course::query();
 
@@ -38,9 +43,51 @@ class CourseController extends Controller
 
     }
 
-    // public function show($id){
+    public function show($id){
+        $course = Course::with('chapters.lessons', 'mentor', 'images')->find($id);
 
-    // }
+        if (!$course) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Course not found'
+                ], 404);
+                }
+        $reviews = Review::where('course_id', $id)->get()->toArray();
+            // search userIDS
+            if(count($reviews) > 0){
+                    $userIds = array_column($reviews, 'user_id');
+
+                    $users = getUserByIds($userIds);
+                    // echo "<pre>".print_r($users, 1)."</pre>";
+                    if ($users['status'] === 'error'){
+                    $reviews = [ ];
+                    } else {
+                        foreach($reviews as $key => $review){
+                            $userIndex = array_search($review['user_id'], array_column($users['data'], 'id'));
+                            
+                            $reviews[$key]['users'] = $users['data'][$userIndex];
+                        }
+                    }
+                }; 
+
+        // student  
+        $totalStudent = MyCourse::where('course_id', $id)->count();
+
+        // Videos
+        $totalVideos = Chapter::where('course_id', $id)->withCount('lessons')->get()->toArray();
+        $finalTotalVideos =array_sum(array_column($totalVideos, 'lessons_count'));
+       
+        // Output
+        $course['reviews'] = $reviews;
+        $course['totalVideos'] = $finalTotalVideos ;
+        $course['totalStudent'] = $totalStudent;
+
+        return response()->json([
+        'status' => 'success',
+        'data' => $course
+        ]);
+
+    }
 
     public function create(Request $request)
     {
